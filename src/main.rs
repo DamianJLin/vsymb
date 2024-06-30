@@ -1,10 +1,9 @@
-use vsymb::check_code;
-use vsymb::jsymb;
+use vsymb;
 
 fn main() {
     println!("Hello, world!");
-    
-    let validity: bool = check_code("121323🦀🦀");
+
+    let validity: bool = vsymb::check_code("121323🦀🦀");
 
     println!("{}", validity);
 }
