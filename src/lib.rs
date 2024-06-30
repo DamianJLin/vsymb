@@ -1,4 +1,5 @@
-use std::{collections::HashMap, hash::Hash};
+use itertools::Itertools;
+use std::{collections::HashMap, collections::HashSet, usize};
 use unicode_segmentation::UnicodeSegmentation;
 
 pub fn check_code(codestr: &str) -> bool {
@@ -37,22 +38,63 @@ pub fn code_vector(codestr: &str) -> Result<Vec<&str>, CodeError> {
 
 pub fn jsymb(code: Vec<&str>) -> i32 {
     let n = code.len() / 2;
+
+    let mut cuml: i32 = 0;
+
+    let index_to_index = create_index_to_index(code.clone());
+
+    for state in std::iter::repeat(1..3)
+        .take(n as usize)
+        .multi_cartesian_product()
+    {
+        println!("State: {:?}", state);
+        let mut visited: HashSet<usize> = HashSet::new();
+        let mut ccs = 0;
+
+        for i in 0..n {
+            if visited.insert(i) {
+                ccs += 1;
+                let mut j = i;
+                let mut breaker = 0;
+                loop {
+                    breaker += 1;
+                    if breaker > 10 {
+                        break;
+                    }
+
+                    println!("{:?}", visited);
+                    j = (j + 1) % n;
+                    if state[j] == 1 {
+                        j = index_to_index[&j]
+                    }
+                    match visited.insert(j) {
+                        true => break,
+                        false => {}
+                    }
+                }
+            }
+        }
+        println!("ccs: {}", ccs);
+
+        let product: i32 = state.iter().product();
+        cuml += product * i32::pow(-2, ccs);
+    }
+
+    cuml
 }
 
-fn create_index_to_grapheme(code: Vec<&str>) -> HashMap<u32, &str> {
+pub fn create_index_to_grapheme(code: Vec<&str>) -> HashMap<usize, &str> {
     let mut index_to_grapheme = HashMap::new();
     for (i, g) in code.iter().enumerate() {
-        let i = i as u32;
         index_to_grapheme.insert(i, *g);
     }
     index_to_grapheme
 }
 
-fn create_index_to_index(code: Vec<&str>) -> HashMap<u32, u32> {
+pub fn create_index_to_index(code: Vec<&str>) -> HashMap<usize, usize> {
     let mut index_to_index = HashMap::new();
     let mut temp = HashMap::new();
     for (i, g) in code.iter().enumerate() {
-        let i = i as u32;
         match temp.insert(g, i) {
             None => {}
             Some(j) => {
