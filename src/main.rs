@@ -1,15 +1,13 @@
+use std::env;
 use vsymb;
 
 fn main() {
     println!("Hello, world!");
 
-    let code = vsymb::code_vector("🦀B🦀CBC").unwrap();
-    let map1 = vsymb::create_index_to_index(code.clone());
-    let map2 = vsymb::create_index_to_grapheme(code.clone());
+    let args: Vec<String> = env::args().collect();
+    let codestr = &args[1];
 
-    println!("{:?}", map1);
-    println!("{:?}", map2);
-
+    let code = vsymb::code_vector(codestr).unwrap();
     let test = vsymb::jsymb(code);
 
     println!("{}", test);

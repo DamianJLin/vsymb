@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use std::io::Write;
 use std::{collections::HashMap, collections::HashSet, usize};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -36,59 +37,100 @@ pub fn code_vector(codestr: &str) -> Result<Vec<&str>, CodeError> {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Resolution {
+    Double,
+    Erase,
+}
+
 pub fn jsymb(code: Vec<&str>) -> i32 {
     let n = code.len() / 2;
 
     let mut cuml: i32 = 0;
 
-    let index_to_index = create_index_to_index(code.clone());
+    let connected_index = create_index_to_index(code.clone());
 
-    for state in std::iter::repeat(1..3)
+    let options = [Resolution::Double, Resolution::Erase];
+    for state in std::iter::repeat(options.iter())
         .take(n as usize)
         .multi_cartesian_product()
     {
-        println!("State: {:?}", state);
         let mut visited: HashSet<usize> = HashSet::new();
+        let resolve_index = create_index_to_resolution(code.clone(), state.clone());
+        let mut grapheme_to_resoltion: HashMap<&str, Resolution> = HashMap::new();
+        let mut seen_grapheme_yet: HashSet<&str> = HashSet::new();
+        let mut k = 0;
+        for grapheme in code.clone() {
+            match seen_grapheme_yet.insert(grapheme) {
+                true => {
+                    grapheme_to_resoltion.insert(grapheme, *state[k]);
+                    k += 1;
+                }
+                false => {}
+            }
+        }
         let mut ccs = 0;
 
-        for i in 0..n {
+        for i in 0..(2 * n) {
             if visited.insert(i) {
                 ccs += 1;
                 let mut j = i;
-                let mut breaker = 0;
                 loop {
-                    breaker += 1;
-                    if breaker > 10 {
-                        break;
-                    }
-
-                    println!("{:?}", visited);
-                    j = (j + 1) % n;
-                    if state[j] == 1 {
-                        j = index_to_index[&j]
+                    j = (j + 1) % (2 * n);
+                    match resolve_index.get(&j) {
+                        Some(Resolution::Double) => {
+                            std::io::stdout().flush().unwrap();
+                            j = connected_index[&j];
+                        }
+                        Some(Resolution::Erase) => {}
+                        None => {}
                     }
                     match visited.insert(j) {
-                        true => break,
-                        false => {}
+                        true => {}
+                        false => break,
                     }
                 }
             }
         }
-        println!("ccs: {}", ccs);
 
-        let product: i32 = state.iter().product();
-        cuml += product * i32::pow(-2, ccs);
+        let mut product: i32 = 1;
+        for s in state {
+            let p = match s {
+                Resolution::Double => 1,
+                Resolution::Erase => 2,
+            };
+            product *= p;
+        }
+        let term = product * i32::pow(-2, ccs - 1);
+        cuml += term;
     }
-
     cuml
 }
 
-pub fn create_index_to_grapheme(code: Vec<&str>) -> HashMap<usize, &str> {
+fn create_index_to_resolution(
+    code: Vec<&str>,
+    state: Vec<&Resolution>,
+) -> HashMap<usize, Resolution> {
     let mut index_to_grapheme = HashMap::new();
     for (i, g) in code.iter().enumerate() {
         index_to_grapheme.insert(i, *g);
     }
-    index_to_grapheme
+
+    // Remove duplicates from code to order the graphemes.
+    let mut code_nodup = code.clone();
+    let mut uniques = HashSet::new();
+    code_nodup.retain(|e| uniques.insert(*e));
+
+    let mut index_to_resolution = HashMap::new();
+    for (i, grapheme_to_index) in code.iter().enumerate() {
+        for (j, grapheme_to_compare) in code_nodup.iter().enumerate() {
+            if grapheme_to_index == grapheme_to_compare {
+                index_to_resolution.insert(i, *state[j]);
+            }
+        }
+    }
+
+    index_to_resolution
 }
 
 pub fn create_index_to_index(code: Vec<&str>) -> HashMap<usize, usize> {
