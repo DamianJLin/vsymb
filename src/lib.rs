@@ -71,11 +71,10 @@ pub fn jsymb(code: Vec<&str>) -> i32 {
 
         // Construct a HashMap assigning each index (each position around the chord diagram) to its
         // corresponding resolution (doubling or deletion), in a particular state.
-        // TODO: Make this take references.
         fn create_index_to_resolution(
-            state: Vec<&Resolution>,
-            grapheme_id: Vec<&str>,
-            code: Vec<&str>,
+            state: &Vec<&Resolution>,
+            grapheme_id: &Vec<&str>,
+            code: &Vec<&str>,
         ) -> HashMap<usize, Resolution> {
             let mut index_to_resolution = HashMap::new();
             for (i, grapheme_to_index) in code.iter().enumerate() {
@@ -90,8 +89,7 @@ pub fn jsymb(code: Vec<&str>) -> i32 {
         }
 
         let mut visited: HashSet<usize> = HashSet::new();
-        let resolve_index =
-            create_index_to_resolution(state.clone(), grapheme_id.clone(), code.clone());
+        let resolve_index = create_index_to_resolution(&state, &grapheme_id, &code);
         let mut ccs = 0;
 
         for i in 0..(2 * n) {
