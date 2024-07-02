@@ -1,3 +1,4 @@
+use core::fmt;
 use itertools::Itertools;
 use std::io::Write;
 use std::{collections::HashMap, collections::HashSet, usize};
@@ -21,11 +22,17 @@ pub fn check_code(codestr: &str) -> bool {
 }
 
 #[derive(Debug, Clone)]
-pub struct CodeError;
+pub struct InputError;
 
-pub fn code_vector(codestr: &str) -> Result<Vec<&str>, CodeError> {
+impl fmt::Display for InputError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "invalid string to represent a chord diagram")
+    }
+}
+
+pub fn code_vector(codestr: &str) -> Result<Vec<&str>, InputError> {
     match check_code(codestr) {
-        false => Err(CodeError),
+        false => Err(InputError),
         true => {
             let mut codevec = Vec::new();
 
@@ -43,6 +50,11 @@ enum Resolution {
     Erase,
 }
 
+// Takes a valid code for a chord diagram and returns the symbol of the Jones polynomial on the
+// chord diagram.
+//
+// A valid code word for a chord diagram is a Vec<&str>, where every unique &str in the vector
+// appearing exactly twice.
 pub fn jsymb(code: Vec<&str>) -> i32 {
     let n = code.len() / 2;
 
@@ -55,20 +67,31 @@ pub fn jsymb(code: Vec<&str>) -> i32 {
         .take(n as usize)
         .multi_cartesian_product()
     {
-        let mut visited: HashSet<usize> = HashSet::new();
-        let resolve_index = create_index_to_resolution(code.clone(), state.clone());
-        let mut grapheme_to_resoltion: HashMap<&str, Resolution> = HashMap::new();
-        let mut seen_grapheme_yet: HashSet<&str> = HashSet::new();
-        let mut k = 0;
-        for grapheme in code.clone() {
-            match seen_grapheme_yet.insert(grapheme) {
-                true => {
-                    grapheme_to_resoltion.insert(grapheme, *state[k]);
-                    k += 1;
+        let grapheme_id = order_unique_graphemes(code.clone());
+
+        // Construct a HashMap assigning each index (each position around the chord diagram) to its
+        // corresponding resolution (doubling or deletion), in a particular state.
+        // TODO: Make this take references.
+        fn create_index_to_resolution(
+            state: Vec<&Resolution>,
+            grapheme_id: Vec<&str>,
+            code: Vec<&str>,
+        ) -> HashMap<usize, Resolution> {
+            let mut index_to_resolution = HashMap::new();
+            for (i, grapheme_to_index) in code.iter().enumerate() {
+                for (j, grapheme_to_compare) in grapheme_id.iter().enumerate() {
+                    if grapheme_to_index == grapheme_to_compare {
+                        index_to_resolution.insert(i, *state[j]);
+                    }
                 }
-                false => {}
             }
+
+            index_to_resolution
         }
+
+        let mut visited: HashSet<usize> = HashSet::new();
+        let resolve_index =
+            create_index_to_resolution(state.clone(), grapheme_id.clone(), code.clone());
         let mut ccs = 0;
 
         for i in 0..(2 * n) {
@@ -107,10 +130,7 @@ pub fn jsymb(code: Vec<&str>) -> i32 {
     cuml
 }
 
-fn create_index_to_resolution(
-    code: Vec<&str>,
-    state: Vec<&Resolution>,
-) -> HashMap<usize, Resolution> {
+fn order_unique_graphemes(code: Vec<&str>) -> Vec<&str> {
     let mut index_to_grapheme = HashMap::new();
     for (i, g) in code.iter().enumerate() {
         index_to_grapheme.insert(i, *g);
@@ -121,16 +141,7 @@ fn create_index_to_resolution(
     let mut uniques = HashSet::new();
     code_nodup.retain(|e| uniques.insert(*e));
 
-    let mut index_to_resolution = HashMap::new();
-    for (i, grapheme_to_index) in code.iter().enumerate() {
-        for (j, grapheme_to_compare) in code_nodup.iter().enumerate() {
-            if grapheme_to_index == grapheme_to_compare {
-                index_to_resolution.insert(i, *state[j]);
-            }
-        }
-    }
-
-    index_to_resolution
+    code_nodup
 }
 
 pub fn create_index_to_index(code: Vec<&str>) -> HashMap<usize, usize> {
