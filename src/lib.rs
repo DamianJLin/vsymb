@@ -53,22 +53,21 @@ enum Resolution {
 // A valid code word for a chord diagram is a Vec<&str>, where every unique &str in the vector
 // appearing exactly twice.
 pub fn jsymb(code: Vec<&str>) -> i32 {
-    let n = (code.len() / 2) as usize;
-
     let mut cuml: i32 = 0;
 
+    let n = (code.len() / 2) as usize;
     let connected_index = create_index_to_index(&code);
-
     let resolutions = [Resolution::Double, Resolution::Erase];
     let states = std::iter::repeat(resolutions.iter())
         .take(n)
         .multi_cartesian_product();
-    for state in states {
-        let grapheme_id = order_unique_graphemes(&code);
 
-        let mut visited: HashSet<usize> = HashSet::new();
-        let resolve_index = create_index_to_resolution(&code, &state, &grapheme_id);
+    for state in states {
         let mut ccs = 0;
+
+        let grapheme_id = order_unique_graphemes(&code);
+        let resolve_index = create_index_to_resolution(&code, &state, &grapheme_id);
+        let mut visited: HashSet<usize> = HashSet::new();
 
         for i in 0..(2 * n) {
             if visited.insert(i) {
@@ -76,13 +75,12 @@ pub fn jsymb(code: Vec<&str>) -> i32 {
                 let mut j = i;
                 loop {
                     j = (j + 1) % (2 * n);
-                    match resolve_index.get(&j) {
-                        Some(Resolution::Double) => {
+                    match resolve_index.get(&j).unwrap() {
+                        Resolution::Double => {
                             std::io::stdout().flush().unwrap();
                             j = connected_index[&j];
                         }
-                        Some(Resolution::Erase) => {}
-                        None => {}
+                        Resolution::Erase => {}
                     }
                     match visited.insert(j) {
                         true => {}
