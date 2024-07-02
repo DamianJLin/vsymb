@@ -3,6 +3,8 @@ A simple CLI tool to compute the symbol of some Vassiliev invariants on a chord 
 
 Currently implements computers for the symbol of the Conway and (modified) Jones polynomials.
 
+Reference: Chapter 3.6.2 (Jones) and Exercise 3.16 (Conway) of Introduction to Vassiliev Knot Invariants by Chmutov-Duzhin-Mostovoy. 
+
 ## Usage
 ```vsymb <invariant> <code>```
 
