@@ -4,7 +4,16 @@ use std::io::Write;
 use std::{collections::HashMap, collections::HashSet, usize};
 use unicode_segmentation::UnicodeSegmentation;
 
-pub fn check_code(codestr: &str) -> bool {
+#[derive(Debug, Clone)]
+pub struct InputError;
+
+impl fmt::Display for InputError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "invalid string to represent a chord diagram.")
+    }
+}
+
+pub fn parse_code(codestr: &str) -> Result<Vec<&str>, InputError> {
     let mut frequency: HashMap<&str, usize> = HashMap::new();
     for grapheme in codestr.graphemes(true) {
         frequency
@@ -18,30 +27,18 @@ pub fn check_code(codestr: &str) -> bool {
             code_valid = false;
         }
     }
-    code_valid
-}
-
-#[derive(Debug, Clone)]
-pub struct InputError;
-
-impl fmt::Display for InputError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "invalid string to represent a chord diagram")
-    }
-}
-
-pub fn code_vector(codestr: &str) -> Result<Vec<&str>, InputError> {
-    match check_code(codestr) {
+    match code_valid {
+        true => Ok(codestr_to_vector(codestr)),
         false => Err(InputError),
-        true => {
-            let mut codevec = Vec::new();
-
-            for grapheme in codestr.graphemes(true) {
-                codevec.push(grapheme);
-            }
-            Ok(codevec)
-        }
     }
+}
+
+fn codestr_to_vector(codestr: &str) -> Vec<&str> {
+    let mut codevec = Vec::new();
+    for grapheme in codestr.graphemes(true) {
+        codevec.push(grapheme);
+    }
+    codevec
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

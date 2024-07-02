@@ -12,8 +12,14 @@ fn main() {
         _ => &args[1],
     };
 
-    let code = vsymb::code_vector(codestr).unwrap();
-    let test = vsymb::jsymb(code);
-
-    println!("{}", test);
+    match vsymb::parse_code(codestr) {
+        Ok(code) => {
+            let ans = vsymb::jsymb(code);
+            println!("{}", ans);
+        }
+        Err(e) => {
+            eprintln!("Application error: {e}");
+            process::exit(1);
+        }
+    };
 }
