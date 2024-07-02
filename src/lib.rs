@@ -1,6 +1,5 @@
 use core::fmt;
 use itertools::Itertools;
-use std::io::Write;
 use std::{collections::HashMap, collections::HashSet, usize};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -77,7 +76,6 @@ pub fn jsymb(code: Vec<&str>) -> i32 {
                     j = (j + 1) % (2 * n);
                     match resolve_index.get(&j).unwrap() {
                         Resolution::Double => {
-                            std::io::stdout().flush().unwrap();
                             j = connected_index[&j];
                         }
                         Resolution::Erase => {}
@@ -102,6 +100,40 @@ pub fn jsymb(code: Vec<&str>) -> i32 {
         cuml += term;
     }
     cuml
+}
+
+// Takes a valid code for a chord diagram and returns the symbol of the Conway polynomial on the
+// chord diagram.
+//
+// A valid code word for a chord diagram is a Vec<&str>, where every unique &str in the vector
+// appearing exactly twice.
+pub fn csymb(code: Vec<&str>) -> i32 {
+    let n = (code.len() / 2) as usize;
+    let connected_index = create_index_to_index(&code);
+
+    let mut ccs = 0;
+
+    let mut visited: HashSet<usize> = HashSet::new();
+
+    for i in 0..(2 * n) {
+        if visited.insert(i) {
+            ccs += 1;
+            let mut j = i;
+            loop {
+                j = (j + 1) % (2 * n);
+                j = connected_index[&j];
+                match visited.insert(j) {
+                    true => {}
+                    false => break,
+                }
+            }
+        }
+    }
+
+    match ccs {
+        1 => 1,
+        _ => 0,
+    }
 }
 
 // Returns a HashMap assigning each index (each position around the chord diagram) to its
